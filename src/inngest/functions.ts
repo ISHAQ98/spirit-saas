@@ -1,18 +1,27 @@
+import { createAgent, openai } from "@inngest/agent-kit";
 import { inngest } from "./client";
 
 export const helloWorld = inngest.createFunction(
   { id: "hello-world" },
   { event: "test/hello.world" },
-  async ({ event, step }) => {
-    // Imagine this is a download step
-    await step.sleep("wait-a-moment", "30s");
+  async ({ event }) => {
+    const codeAgent = createAgent({
+      name: "code-agent",
+      system:
+        "You are an expert next.js developer. You write readable, maintainable code, You write simple Next.js & React snippets.",
 
-    // Imagine this is a transcript step
-    await step.sleep("wait-a-moment", "10s");
+      model: openai({
+        model: "llama-3.3-70b-versatile", // Groq model
+        apiKey: process.env.GROQ_API_KEY,
+        baseUrl: "https://api.groq.com/openai/v1",
+        // step, // keep this for Inngest observability
+      }),
+    });
 
-    // Imagine this is a summary step
-    await step.sleep("wait-a-moment", "5s");
+    const { output } = await codeAgent.run(
+      `Write the following snippet: ${event.data.value}`
+    );
 
-    return { message: `Hello ${event.data.email}!` };
+    return { output };
   }
 );
